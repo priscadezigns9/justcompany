@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Just Company — logo animation</title>
+<style>
+  :root {
+    --ink: #243447;
+    --tint: #8FA3B3;
+    --bg: #FFFFFF;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 900px;
+    max-height: 640px;
+  }
+
+  .circle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    border-radius: 50%;
+    width: 140px;
+    height: 140px;
+    margin-left: -70px;
+    margin-top: -70px;
+    will-change: transform;
+  }
+  .circle.ink { background: var(--ink); }
+  .circle.tint { background: var(--tint); mix-blend-mode: multiply; }
+
+  .replay {
+    position: absolute;
+    left: 50%;
+    bottom: 8%;
+    transform: translateX(-50%);
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .replay.show {
+    opacity: 0.7;
+    pointer-events: auto;
+  }
+  .replay:hover { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="circle ink" id="circleA"></div>
+  <div class="circle tint" id="circleB"></div>
+  <button class="replay" id="replay">Replay</button>
+</div>
+
+<script>
+(function () {
+  var circleA = document.getElementById('circleA'); // navy, ends on the left
+  var circleB = document.getElementById('circleB'); // tint, ends on the right
+  var replayBtn = document.getElementById('replay');
+  var stage = document.getElementById('stage');
+
+  var CIRCLE_R = 70;          // visual circle radius, px
+  var FINAL_ORBIT_R = 28;     // distance from center to each circle's center at rest
+  var MID_ORBIT_R = 92;       // orbit radius while circling each other
+
+  var T_MEET = 1300;          // ms, fly in from offscreen
+  var T_ORBIT = 2100;         // ms, circle each other
+  var T_BOUNCE = 900;         // ms, spring into final position
+  var TOTAL = T_MEET + T_ORBIT + T_BOUNCE;
+
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+  function place(el, angleDeg, r) {
+    var rad = angleDeg * Math.PI / 180;
+    var x = r * Math.cos(rad);
+    var y = r * Math.sin(rad);
+    el.style.transform = 'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px)';
+  }
+
+  var rafId = null;
+  var startTime = null;
+
+  function frame(now) {
+    if (startTime === null) startTime = now;
+    var elapsed = now - startTime;
+
+    if (elapsed >= TOTAL) {
+      place(circleA, 180, FINAL_ORBIT_R);
+      place(circleB, 0, FINAL_ORBIT_R);
+      replayBtn.classList.remove('show');
+      rafId = null;
+      setTimeout(play, 900);
+      return;
+    }
+
+    var startR = (stage.clientWidth / 2) + CIRCLE_R + 60;
+
+    if (elapsed < T_MEET) {
+      var t = easeOutCubic(elapsed / T_MEET);
+      var r = startR + (MID_ORBIT_R - startR) * t;
+      place(circleA, 180, r);
+      place(circleB, 0, r);
+    } else if (elapsed < T_MEET + T_ORBIT) {
+      var t2 = easeInOutCubic((elapsed - T_MEET) / T_ORBIT);
+      var theta = t2 * 720; // two full revolutions, ends back at 180/0
+      var r2 = MID_ORBIT_R + (FINAL_ORBIT_R - MID_ORBIT_R) * t2;
+      place(circleA, 180 + theta, r2);
+      place(circleB, theta, r2);
+    } else {
+      var t3 = (elapsed - T_MEET - T_ORBIT) / T_BOUNCE;
+      var amp = 16 * Math.exp(-4.2 * t3);
+      var wobble = amp * Math.sin(2 * Math.PI * 2.4 * t3);
+      var r3 = FINAL_ORBIT_R + wobble;
+      place(circleA, 180, r3);
+      place(circleB, 0, r3);
+    }
+
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function play() {
+    if (rafId) cancelAnimationFrame(rafId);
+    startTime = null;
+    replayBtn.classList.remove('show');
+    rafId = requestAnimationFrame(frame);
+  }
+
+  replayBtn.addEventListener('click', play);
+  window.addEventListener('resize', function () {
+    // no-op: orbit radii are fixed px, only the offscreen start point depends on width,
+    // which is recalculated live in frame() via stage.clientWidth
+  });
+
+  play();
+})();
+</script>
+
+</body>
+</html>
