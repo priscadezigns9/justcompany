@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Just Company — meeting at the table</title>
+<style>
+  :root {
+    --ink: #243447;
+    --grey: #61666B;
+    --bg: #FFFFFF;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 1000px;
+    max-height: 600px;
+  }
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .ground { stroke: #ECEDEF; stroke-width: 2; }
+  .table-apron { fill: #E7E4DE; }
+  .table-top { fill: #F1EFEA; }
+  .chair { stroke: #C7C2B8; stroke-width: 9; stroke-linecap: round; fill: none; }
+  .bubble-text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-weight: 700; }
+
+  .speech {
+    opacity: 0;
+    transform: translateY(6px) scale(0.85);
+    transform-origin: 0px 0px;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .speech.show { opacity: 1; transform: translateY(0) scale(1); }
+
+  .replay {
+    position: absolute;
+    left: 50%;
+    bottom: 5%;
+    transform: translateX(-50%);
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .replay.show { opacity: 0.7; pointer-events: auto; }
+  .replay:hover { opacity: 1; }
+#replay{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <svg id="svg" viewBox="250 280 500 300" preserveAspectRatio="xMidYMid meet">
+    <line class="ground" x1="20" y1="520" x2="980" y2="520"></line>
+    <g id="chairsGroup"></g>
+    <g id="peopleGroup"></g>
+    <rect class="table-top" x="380" y="448" width="240" height="14" rx="6"></rect>
+    <rect class="table-apron" x="390" y="460" width="220" height="45" rx="6"></rect>
+    <g id="bubblesGroup"></g>
+    <g id="speechGroup"></g>
+  </svg>
+  <button class="replay" id="replay">Replay</button>
+</div>
+
+<script>
+(function () {
+  var svgNS = 'http://www.w3.org/2000/svg';
+  var group = document.getElementById('peopleGroup');
+  var chairsGroup = document.getElementById('chairsGroup');
+  var bubblesGroup = document.getElementById('bubblesGroup');
+  var speechGroup = document.getElementById('speechGroup');
+  var replayBtn = document.getElementById('replay');
+
+  var GROUND_Y = 520;
+  var SEAT_A = 400, SEAT_B = 600;
+
+  function drawChair(seatX, facingRight) {
+    var sign = facingRight ? -1 : 1; // backrest sits on the outer side, away from the table
+    var backX = seatX + sign * 42;
+    var frontX = seatX - sign * 4;
+    var seatY = 478;
+
+    var back = document.createElementNS(svgNS, 'line');
+    back.setAttribute('class', 'chair');
+    back.setAttribute('x1', backX); back.setAttribute('y1', seatY);
+    back.setAttribute('x2', backX); back.setAttribute('y2', seatY - 62);
+    chairsGroup.appendChild(back);
+
+    var seat = document.createElementNS(svgNS, 'line');
+    seat.setAttribute('class', 'chair');
+    seat.setAttribute('x1', backX); seat.setAttribute('y1', seatY);
+    seat.setAttribute('x2', frontX); seat.setAttribute('y2', seatY);
+    chairsGroup.appendChild(seat);
+
+    [backX + sign * 8, frontX - sign * 8].forEach(function (lx) {
+      var leg = document.createElementNS(svgNS, 'line');
+      leg.setAttribute('class', 'chair');
+      leg.setAttribute('stroke-width', 7);
+      leg.setAttribute('x1', lx); leg.setAttribute('y1', seatY);
+      leg.setAttribute('x2', lx); leg.setAttribute('y2', GROUND_Y);
+      chairsGroup.appendChild(leg);
+    });
+  }
+  drawChair(SEAT_A, true);
+  drawChair(SEAT_B, false);
+
+  // side-profile, faceless person, facing +x (right) by default; mirror with facingLeft
+  function buildPerson(color, facingLeft) {
+    var outer = document.createElementNS(svgNS, 'g');
+    var g = document.createElementNS(svgNS, 'g');
+    outer.appendChild(g);
+    if (facingLeft) g.setAttribute('transform', 'scale(-1,1)');
+
+    function mkLine(w) {
+      var l = document.createElementNS(svgNS, 'line');
+      l.setAttribute('stroke', color); l.setAttribute('stroke-width', w); l.setAttribute('stroke-linecap', 'round');
+      g.appendChild(l);
+      return l;
+    }
+
+    var legBackThigh = mkLine(13);
+    var legBackShin = mkLine(13);
+    var legFrontThigh = mkLine(13);
+    var legFrontShin = mkLine(13);
+
+    var torso = document.createElementNS(svgNS, 'line');
+    torso.setAttribute('x1', 2); torso.setAttribute('y1', -95);
+    torso.setAttribute('x2', 0); torso.setAttribute('y2', -45);
+    torso.setAttribute('stroke', color); torso.setAttribute('stroke-width', 28); torso.setAttribute('stroke-linecap', 'round');
+    g.appendChild(torso);
+
+    var arm = mkLine(10);
+
+    var head = document.createElementNS(svgNS, 'circle');
+    head.setAttribute('cx', 9); head.setAttribute('cy', -118); head.setAttribute('r', 17);
+    head.setAttribute('fill', color);
+    g.appendChild(head);
+
+    return {
+      outer: outer,
+      legBackThigh: legBackThigh, legBackShin: legBackShin,
+      legFrontThigh: legFrontThigh, legFrontShin: legFrontShin,
+      arm: arm
+    };
+  }
+
+  var HIP = { x: 0, y: -45 };
+  var SHOULDER = { x: 2, y: -95 };
+  var THIGH_LEN = 24, SHIN_LEN = 24, ARM_LEN = 38;
+
+  function setSeg(line, from, len, angleDeg) {
+    var rad = angleDeg * Math.PI / 180;
+    var to = { x: from.x + len * Math.sin(rad), y: from.y + len * Math.cos(rad) };
+    line.setAttribute('x1', from.x); line.setAttribute('y1', from.y);
+    line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
+    return to;
+  }
+
+  // legAngle: single angle used for BOTH thigh and shin (straight leg, used while walking/standing)
+  function setLegStraight(person, legAngle) {
+    var kneeF = setSeg(person.legFrontThigh, HIP, THIGH_LEN, legAngle);
+    setSeg(person.legFrontShin, kneeF, SHIN_LEN, legAngle);
+    var kneeB = setSeg(person.legBackThigh, HIP, THIGH_LEN, -legAngle);
+    setSeg(person.legBackShin, kneeB, SHIN_LEN, -legAngle);
+  }
+
+  // separate thigh/shin angles (used for the seated bent-knee pose and for tweening into it)
+  function setLegBent(person, thighAngle, shinAngle) {
+    var kneeF = setSeg(person.legFrontThigh, HIP, THIGH_LEN, thighAngle);
+    setSeg(person.legFrontShin, kneeF, SHIN_LEN, shinAngle);
+    var kneeB = setSeg(person.legBackThigh, HIP, THIGH_LEN, thighAngle);
+    setSeg(person.legBackShin, kneeB, SHIN_LEN, shinAngle);
+  }
+
+  function setOuter(person, x, rotDeg) {
+    var r = rotDeg || 0;
+    person.outer.setAttribute('transform', 'translate(' + x.toFixed(2) + ',' + GROUND_Y + ') rotate(' + r.toFixed(2) + ' 0 -80)');
+  }
+
+  var pA = buildPerson('#243447', false); // ink, enters left, faces right
+  var pB = buildPerson('#61666B', true);  // grey, enters right, faces left
+  group.appendChild(pA.outer);
+  group.appendChild(pB.outer);
+
+  function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+  var START_A = 70, START_B = 930;
+  var WALK_MS = 3600;      // slow, relaxed walk
+  var SIT_MS = 650;        // easing legs into the seated bend, no vertical movement at all
+  var STRIDE_FREQ = 0.85;  // strides per second — calmer pace
+  var LEG_AMP = 20;        // degrees
+  var ARM_AMP = 14;
+
+  var THIGH_SIT = 74, SHIN_SIT = 0; // bent-knee seated target angles
+  var ARM_SIT = 12;
+
+  function currentWalkAngle(elapsedMs) {
+    var t = elapsedMs / 1000;
+    return LEG_AMP * Math.sin(2 * Math.PI * STRIDE_FREQ * t);
+  }
+
+  poseAtStart();
+  function poseAtStart() {
+    setLegStraight(pA, 0); setLegStraight(pB, 0);
+    setSeg(pA.arm, SHOULDER, ARM_LEN, 0);
+    setSeg(pB.arm, SHOULDER, ARM_LEN, 0);
+  }
+
+  var walkRAF = null, walkStart = null;
+  var laughRAF = null, laughStart = null;
+  var timers = [];
+
+  function clearTimers() { timers.forEach(function (id) { clearTimeout(id); }); timers = []; }
+
+  function showSpeech(x, y, text, color, holdMs, cb) {
+    var outer = document.createElementNS(svgNS, 'g');
+    outer.setAttribute('transform', 'translate(' + x + ',' + y + ')');
+    var inner = document.createElementNS(svgNS, 'g');
+    inner.setAttribute('class', 'speech');
+
+    var w = 30 + text.length * 11;
+    var rect = document.createElementNS(svgNS, 'rect');
+    rect.setAttribute('x', -w / 2); rect.setAttribute('y', -54);
+    rect.setAttribute('width', w); rect.setAttribute('height', 34);
+    rect.setAttribute('rx', 10);
+    rect.setAttribute('fill', '#FFFFFF');
+    rect.setAttribute('stroke', color);
+    rect.setAttribute('stroke-width', 1.6);
+    inner.appendChild(rect);
+
+    var tip = document.createElementNS(svgNS, 'path');
+    tip.setAttribute('d', 'M -7 -20 L 7 -20 L 0 -6 Z');
+    tip.setAttribute('fill', '#FFFFFF');
+    tip.setAttribute('stroke', color);
+    tip.setAttribute('stroke-width', 1.6);
+    inner.appendChild(tip);
+
+    var cover = document.createElementNS(svgNS, 'rect');
+    cover.setAttribute('x', -7); cover.setAttribute('y', -22);
+    cover.setAttribute('width', 14); cover.setAttribute('height', 6);
+    cover.setAttribute('fill', '#FFFFFF');
+    inner.appendChild(cover);
+
+    var label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('class', 'bubble-text');
+    label.setAttribute('x', 0); label.setAttribute('y', -32);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', 15);
+    label.setAttribute('fill', color);
+    label.textContent = text;
+    inner.appendChild(label);
+
+    outer.appendChild(inner);
+    speechGroup.appendChild(outer);
+
+    requestAnimationFrame(function () { inner.classList.add('show'); });
+
+    timers.push(setTimeout(function () {
+      inner.classList.remove('show');
+      timers.push(setTimeout(function () {
+        if (outer.parentNode) speechGroup.removeChild(outer);
+        if (cb) cb();
+      }, 260));
+    }, holdMs));
+  }
+
+  function endScene() {
+    // Loop automatically; the manual replay control is intentionally hidden.
+    replayBtn.classList.remove('show');
+    setTimeout(function () { play(); }, 1800);
+  }
+
+  function startGreeting() {
+    timers.push(setTimeout(function () {
+      showSpeech(SEAT_A, GROUND_Y - 148, 'Hello', '#243447', 900, function () {
+        timers.push(setTimeout(function () {
+          showSpeech(SEAT_B, GROUND_Y - 148, 'Hi', '#61666B', 900, function () {
+            timers.push(setTimeout(endScene, 250));
+          });
+        }, 150));
+      });
+    }, 250));
+  }
+
+  function frame(now) {
+    if (walkStart === null) walkStart = now;
+    var elapsed = now - walkStart;
+
+    if (elapsed < WALK_MS) {
+      var t = easeInOutCubic(elapsed / WALK_MS);
+      var xA = START_A + (SEAT_A - START_A) * t;
+      var xB = START_B + (SEAT_B - START_B) * t;
+      setOuter(pA, xA, 0);
+      setOuter(pB, xB, 0);
+      var legAngle = currentWalkAngle(elapsed);
+      // fade the stride out as they arrive, so the last few steps shorten naturally
+      var strideEnvelope = Math.min(1, (WALK_MS - elapsed) / 500 + 0.15);
+      setLegStraight(pA, legAngle * Math.min(1, strideEnvelope));
+      setLegStraight(pB, legAngle * Math.min(1, strideEnvelope));
+      setSeg(pA.arm, SHOULDER, ARM_LEN, -legAngle * (ARM_AMP / LEG_AMP));
+      setSeg(pB.arm, SHOULDER, ARM_LEN, -legAngle * (ARM_AMP / LEG_AMP));
+      walkRAF = requestAnimationFrame(frame);
+      return;
+    }
+
+    var sitElapsed = elapsed - WALK_MS;
+    if (sitElapsed < SIT_MS) {
+      var st = easeInOutCubic(sitElapsed / SIT_MS);
+      setOuter(pA, SEAT_A, 0);
+      setOuter(pB, SEAT_B, 0);
+      // tween both thigh and shin from a straight leg (angle 0) toward the seated bend
+      var thighA = 0 + (THIGH_SIT - 0) * st;
+      var shinA = 0 + (SHIN_SIT - 0) * st;
+      setLegBent(pA, thighA, shinA);
+      setLegBent(pB, thighA, shinA);
+      var armA = 0 + (ARM_SIT - 0) * st;
+      setSeg(pA.arm, SHOULDER, ARM_LEN, armA);
+      setSeg(pB.arm, SHOULDER, ARM_LEN, armA);
+      walkRAF = requestAnimationFrame(frame);
+      return;
+    }
+
+    setOuter(pA, SEAT_A, 0);
+    setOuter(pB, SEAT_B, 0);
+    setLegBent(pA, THIGH_SIT, SHIN_SIT);
+    setLegBent(pB, THIGH_SIT, SHIN_SIT);
+    setSeg(pA.arm, SHOULDER, ARM_LEN, ARM_SIT);
+    setSeg(pB.arm, SHOULDER, ARM_LEN, ARM_SIT);
+    walkRAF = null;
+    startGreeting();
+  }
+
+  function play() {
+    if (walkRAF) cancelAnimationFrame(walkRAF);
+    if (laughRAF) cancelAnimationFrame(laughRAF);
+    clearTimers();
+    while (bubblesGroup.firstChild) bubblesGroup.removeChild(bubblesGroup.firstChild);
+    while (speechGroup.firstChild) speechGroup.removeChild(speechGroup.firstChild);
+
+    walkStart = null;
+    replayBtn.classList.remove('show');
+    setOuter(pA, START_A, 0);
+    setOuter(pB, START_B, 0);
+    poseAtStart();
+    walkRAF = requestAnimationFrame(frame);
+  }
+
+  replayBtn.addEventListener('click', play);
+  play();
+})();
+</script>
+
+</body>
+</html>
