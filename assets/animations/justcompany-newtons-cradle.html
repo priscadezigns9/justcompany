@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Just Company — Newton's cradle</title>
+<style>
+  :root {
+    --ink: #243447;
+    --grey: #4E5A66;
+    --tint: #8FA3B3;
+    --bg: #FFFFFF;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 1000px;
+    max-height: 700px;
+  }
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .rod { stroke: #d9dde1; stroke-width: 6; stroke-linecap: round; }
+  .string { stroke: #b9c0c6; stroke-width: 1.4; }
+  .shadow { fill: #000000; opacity: 0.06; }
+
+  .replay {
+    position: absolute;
+    left: 50%;
+    bottom: 6%;
+    transform: translateX(-50%);
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .replay.show { opacity: 0.7; pointer-events: auto; }
+  .replay:hover { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <svg id="svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="gradInk" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stop-color="#A1BBD9"></stop>
+        <stop offset="45%" stop-color="#1D344E"></stop>
+        <stop offset="100%" stop-color="#0F1B2A"></stop>
+      </radialGradient>
+      <radialGradient id="gradGrey" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stop-color="#AFB2B6"></stop>
+        <stop offset="45%" stop-color="#61666B"></stop>
+        <stop offset="100%" stop-color="#3A3D41"></stop>
+      </radialGradient>
+      <radialGradient id="gradTint" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stop-color="#D3DCE3"></stop>
+        <stop offset="45%" stop-color="#8FA2B3"></stop>
+        <stop offset="100%" stop-color="#55738B"></stop>
+      </radialGradient>
+    </defs>
+    <line class="rod" x1="270" y1="90" x2="730" y2="90"></line>
+    <ellipse class="shadow" id="clusterShadow" cx="500" cy="426" rx="230" ry="14"></ellipse>
+    <g id="ballsGroup"></g>
+  </svg>
+  <button class="replay" id="replay">Replay</button>
+</div>
+
+<script>
+(function () {
+  var N = 7;
+  var R = 34;
+  var LEN = 320;
+  var PIVOT_Y = 90;
+  var CENTER_X = 500;
+
+  var colors = ['url(#gradInk)', 'url(#gradGrey)', 'url(#gradGrey)', 'url(#gradGrey)', 'url(#gradGrey)', 'url(#gradGrey)', 'url(#gradTint)'];
+
+  var svg = document.getElementById('svg');
+  var group = document.getElementById('ballsGroup');
+  var replayBtn = document.getElementById('replay');
+  var svgNS = 'http://www.w3.org/2000/svg';
+
+  var pivots = [];
+  var strings = [];
+  var balls = [];
+  var highlights = [];
+
+  for (var i = 0; i < N; i++) {
+    var px = CENTER_X + (i - (N - 1) / 2) * (2 * R);
+    pivots.push({ x: px, y: PIVOT_Y });
+
+    var str = document.createElementNS(svgNS, 'line');
+    str.setAttribute('class', 'string');
+    group.appendChild(str);
+    strings.push(str);
+
+    var ball = document.createElementNS(svgNS, 'circle');
+    ball.setAttribute('r', R);
+    ball.setAttribute('fill', colors[i]);
+    group.appendChild(ball);
+    balls.push(ball);
+
+    var hl = document.createElementNS(svgNS, 'ellipse');
+    hl.setAttribute('rx', R * 0.28);
+    hl.setAttribute('ry', R * 0.18);
+    hl.setAttribute('fill', '#FFFFFF');
+    hl.setAttribute('opacity', '0.55');
+    group.appendChild(hl);
+    highlights.push(hl);
+  }
+
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  function easeInCubic(t) { return t * t * t; }
+
+  function setBall(idx, angleDeg) {
+    var rad = angleDeg * Math.PI / 180;
+    var piv = pivots[idx];
+    var x = piv.x + LEN * Math.sin(rad);
+    var y = piv.y + LEN * Math.cos(rad);
+    balls[idx].setAttribute('cx', x);
+    balls[idx].setAttribute('cy', y);
+    highlights[idx].setAttribute('cx', x - R * 0.32);
+    highlights[idx].setAttribute('cy', y - R * 0.38);
+    strings[idx].setAttribute('x1', piv.x);
+    strings[idx].setAttribute('y1', piv.y);
+    strings[idx].setAttribute('x2', x);
+    strings[idx].setAttribute('y2', y);
+  }
+
+  // rest pose for all balls (angle 0)
+  for (var j = 0; j < N; j++) setBall(j, 0);
+
+  var FIRST = 0;      // leftmost ball index, swings negative (left)
+  var LAST = N - 1;    // rightmost ball index, swings positive (right)
+
+  var OUT_MS = 480;
+  var BACK_MS = 420;
+  var HOLD_MS = 300;
+
+  var bounces = [
+    { side: 'last', amp: 40, startOut: true },
+    { side: 'first', amp: 36 },
+    { side: 'last', amp: 30 },
+    { side: 'first', amp: 22 },
+    { side: 'last', amp: 14 },
+    { side: 'first', amp: 8 }
+  ];
+
+  var phases = [];
+  var t = 0;
+  phases.push({ start: 0, end: HOLD_MS, type: 'hold' });
+  t = HOLD_MS;
+
+  bounces.forEach(function (b) {
+    if (!b.startOut) {
+      phases.push({ start: t, end: t + OUT_MS, type: 'out', side: b.side, amp: b.amp });
+      t += OUT_MS;
+    }
+    phases.push({ start: t, end: t + BACK_MS, type: 'back', side: b.side, amp: b.amp });
+    t += BACK_MS;
+  });
+  var TOTAL = t + 200;
+
+  var rafId = null, startTime = null;
+
+  function frame(now) {
+    if (startTime === null) startTime = now;
+    var elapsed = now - startTime;
+
+    if (elapsed >= TOTAL) {
+      setBall(FIRST, 0);
+      setBall(LAST, 0);
+      replayBtn.classList.remove('show');
+      rafId = null;
+      setTimeout(play, 900);
+      return;
+    }
+
+    var angleFirst = 0, angleLast = 40; // default while still in initial hold
+
+    for (var i = 0; i < phases.length; i++) {
+      var p = phases[i];
+      if (p.type === 'hold') continue;
+      if (elapsed < p.start) continue;
+      var amp = p.amp;
+      var sideIdx = (p.side === 'first') ? FIRST : LAST;
+      var sign = (p.side === 'first') ? -1 : 1;
+
+      if (elapsed >= p.start && elapsed < p.end) {
+        if (p.type === 'out') {
+          var tt = easeOutCubic((elapsed - p.start) / (p.end - p.start));
+          var a = sign * amp * tt;
+        } else {
+          var tt2 = easeInCubic((elapsed - p.start) / (p.end - p.start));
+          var a = sign * amp * (1 - tt2);
+        }
+        if (p.side === 'first') angleFirst = a; else angleLast = a;
+      } else if (elapsed >= p.end) {
+        if (p.side === 'first') angleFirst = 0; else angleLast = 0;
+      }
+    }
+
+    setBall(FIRST, angleFirst);
+    setBall(LAST, angleLast);
+
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function play() {
+    if (rafId) cancelAnimationFrame(rafId);
+    startTime = null;
+    replayBtn.classList.remove('show');
+    setBall(FIRST, 0);
+    setBall(LAST, 40);
+    rafId = requestAnimationFrame(frame);
+  }
+
+  replayBtn.addEventListener('click', play);
+  play();
+})();
+</script>
+
+</body>
+</html>
