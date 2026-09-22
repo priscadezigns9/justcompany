@@ -36,6 +36,7 @@
     .jc-qr{padding:0 20px 14px;display:flex;flex-wrap:wrap;gap:8px;flex-shrink:0}
     .jc-qrb{font-size:.72rem;font-weight:700;padding:8px 12px;border:1px solid var(--jc-line);background:#fff;cursor:pointer;color:var(--jc-ink);border-radius:12px;transition:all .2s;font-family:'Nunito Sans',sans-serif}
     .jc-qrb:hover{background:var(--jc-ink);color:#fff;border-color:var(--jc-ink)}
+    .jc-link-btn{display:inline-block;background:var(--jc-ink);color:#fff!important;text-decoration:none!important;padding:7px 11px;border-radius:8px;font-weight:800;font-size:.78rem;line-height:1.25;margin:3px 3px 3px 0}.jc-link-btn:hover{background:#1b2633}
     .jc-inp-row{display:flex;border-top:1px solid var(--jc-line);padding:10px;background:#fff;gap:8px;flex-shrink:0}
     #jc-inp{flex:1;min-width:0;border:none;background:var(--jc-soft);padding:10px 14px;font-size:.86rem;border-radius:12px;outline:none;font-family:inherit;color:var(--jc-ink)}
     #jc-inp:focus{box-shadow:inset 0 0 0 2px rgba(36,52,71,.18)}
@@ -105,9 +106,19 @@
     }
 
     function linkify(s) {
-        return escapeHtml(s).replace(/\n/g, '<br>').replace(/(https?:\/\/\S+|\/justcompany\/\S+|justcompany@priscion\.com)/g, m => {
+        const labels = {
+            'https://justcompany.priscion.com/booking/': 'Make a private enquiry',
+            'https://justcompany.priscion.com/companions/': 'Apply as a companion',
+            'https://justcompany.priscion.com/terms.html': 'Terms of Use',
+            'https://justcompany.priscion.com/privacy.html': 'Privacy Policy',
+            'https://justcompany.priscion.com/safety-privacy.html': 'Safety and Privacy'
+        };
+        return escapeHtml(s).replace(/\n/g, '<br>').replace(/https?:\/\/[^\s<]+|justcompany@priscion\.com/g, m => {
             if (m.includes('@')) return `<a href="mailto:${m}">${m}</a>`;
-            return `<a href="${m}" target="_blank" rel="noopener noreferrer">${m}</a>`;
+            const trailing = (m.match(/[.,;!?]+$/) || [''])[0];
+            const url = trailing ? m.slice(0, -trailing.length) : m;
+            const label = labels[url] || 'Open link';
+            return `<a class="jc-link-btn" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>${trailing}`;
         });
     }
 
