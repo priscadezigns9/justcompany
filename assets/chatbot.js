@@ -113,7 +113,7 @@
             'https://justcompany.priscion.com/privacy.html': 'Privacy Policy',
             'https://justcompany.priscion.com/safety-privacy.html': 'Safety and Privacy'
         };
-        return escapeHtml(s).replace(/\n/g, '<br>').replace(/&lt;(https?:\/\/[^&<\s]+)&gt;/g, '$1').replace(/https?:\/\/[^\s<&]+|justcompany@priscion\.com/g, m => {
+        return escapeHtml(s).replace(/\n/g, '<br>').replace(/&lt;\s*(https?:\/\/[^&<\s]+)\s*&gt;/g, '$1').replace(/https?:\/\/[^\s<&]+|justcompany@priscion\.com/g, m => {
             if (m.includes('@')) return `<a href="mailto:${m}">${m}</a>`;
             const trailing = (m.match(/[.,;!?]+$/) || [''])[0];
             const url = trailing ? m.slice(0, -trailing.length) : m;
