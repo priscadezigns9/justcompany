@@ -61,24 +61,7 @@
 <body>
 
 <div class="stage" id="stage">
-  <svg id="svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet">
-    <defs>
-      <radialGradient id="gradInk" cx="35%" cy="30%" r="75%">
-        <stop offset="0%" stop-color="#A1BBD9"></stop>
-        <stop offset="45%" stop-color="#1D344E"></stop>
-        <stop offset="100%" stop-color="#0F1B2A"></stop>
-      </radialGradient>
-      <radialGradient id="gradGrey" cx="35%" cy="30%" r="75%">
-        <stop offset="0%" stop-color="#AFB2B6"></stop>
-        <stop offset="45%" stop-color="#61666B"></stop>
-        <stop offset="100%" stop-color="#3A3D41"></stop>
-      </radialGradient>
-      <radialGradient id="gradTint" cx="35%" cy="30%" r="75%">
-        <stop offset="0%" stop-color="#D3DCE3"></stop>
-        <stop offset="45%" stop-color="#8FA2B3"></stop>
-        <stop offset="100%" stop-color="#55738B"></stop>
-      </radialGradient>
-    </defs>
+  <svg id="svg" viewBox="75 -33 850 595" preserveAspectRatio="xMidYMid meet">
     <line class="rod" x1="270" y1="90" x2="730" y2="90"></line>
     <ellipse class="shadow" id="clusterShadow" cx="500" cy="426" rx="230" ry="14"></ellipse>
     <g id="ballsGroup"></g>
@@ -94,7 +77,7 @@
   var PIVOT_Y = 90;
   var CENTER_X = 500;
 
-  var colors = ['url(#gradInk)', 'url(#gradGrey)', 'url(#gradGrey)', 'url(#gradGrey)', 'url(#gradGrey)', 'url(#gradGrey)', 'url(#gradTint)'];
+  var colors = ['#1D344E', '#61666B', '#61666B', '#61666B', '#61666B', '#61666B', '#8FA2B3'];
 
   var svg = document.getElementById('svg');
   var group = document.getElementById('ballsGroup');
@@ -104,7 +87,6 @@
   var pivots = [];
   var strings = [];
   var balls = [];
-  var highlights = [];
 
   for (var i = 0; i < N; i++) {
     var px = CENTER_X + (i - (N - 1) / 2) * (2 * R);
@@ -120,14 +102,6 @@
     ball.setAttribute('fill', colors[i]);
     group.appendChild(ball);
     balls.push(ball);
-
-    var hl = document.createElementNS(svgNS, 'ellipse');
-    hl.setAttribute('rx', R * 0.28);
-    hl.setAttribute('ry', R * 0.18);
-    hl.setAttribute('fill', '#FFFFFF');
-    hl.setAttribute('opacity', '0.55');
-    group.appendChild(hl);
-    highlights.push(hl);
   }
 
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
@@ -140,8 +114,6 @@
     var y = piv.y + LEN * Math.cos(rad);
     balls[idx].setAttribute('cx', x);
     balls[idx].setAttribute('cy', y);
-    highlights[idx].setAttribute('cx', x - R * 0.32);
-    highlights[idx].setAttribute('cy', y - R * 0.38);
     strings[idx].setAttribute('x1', piv.x);
     strings[idx].setAttribute('y1', piv.y);
     strings[idx].setAttribute('x2', x);
@@ -191,9 +163,8 @@
     if (elapsed >= TOTAL) {
       setBall(FIRST, 0);
       setBall(LAST, 0);
-      replayBtn.classList.remove('show');
+      replayBtn.classList.add('show');
       rafId = null;
-      setTimeout(play, 900);
       return;
     }
 
