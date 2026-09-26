@@ -65,7 +65,6 @@
   }
   .replay.show { opacity: 0.7; pointer-events: auto; }
   .replay:hover { opacity: 1; }
-#replay{display:none!important}
 </style>
 </head>
 <body>
@@ -75,8 +74,8 @@
     <line class="ground" x1="20" y1="520" x2="980" y2="520"></line>
     <g id="chairsGroup"></g>
     <g id="peopleGroup"></g>
-    <rect class="table-top" x="380" y="448" width="240" height="14" rx="6"></rect>
-    <rect class="table-apron" x="390" y="460" width="220" height="45" rx="6"></rect>
+    <rect class="table-top" x="415" y="448" width="170" height="14" rx="6"></rect>
+    <rect class="table-apron" x="425" y="460" width="150" height="40" rx="6"></rect>
     <g id="bubblesGroup"></g>
     <g id="speechGroup"></g>
   </svg>
@@ -286,9 +285,7 @@
   }
 
   function endScene() {
-    // Loop automatically; the manual replay control is intentionally hidden.
-    replayBtn.classList.remove('show');
-    setTimeout(function () { play(); }, 1800);
+    replayBtn.classList.add('show');
   }
 
   function startGreeting() {
