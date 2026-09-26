@@ -285,7 +285,12 @@
   }
 
   function endScene() {
-    replayBtn.classList.add('show');
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      replayBtn.classList.add('show');
+      return;
+    }
+    replayBtn.classList.remove('show');
+    timers.push(setTimeout(play, 1800));
   }
 
   function startGreeting() {
