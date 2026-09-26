@@ -154,7 +154,8 @@
   });
   var TOTAL = t + 200;
 
-  var rafId = null, startTime = null;
+  var rafId = null, startTime = null, loopTimer = null;
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function frame(now) {
     if (startTime === null) startTime = now;
@@ -163,8 +164,13 @@
     if (elapsed >= TOTAL) {
       setBall(FIRST, 0);
       setBall(LAST, 0);
-      replayBtn.classList.add('show');
       rafId = null;
+      if (reduceMotion) {
+        replayBtn.classList.add('show');
+        return;
+      }
+      replayBtn.classList.remove('show');
+      loopTimer = setTimeout(play, 1500);
       return;
     }
 
@@ -199,6 +205,10 @@
   }
 
   function play() {
+    if (loopTimer) {
+      clearTimeout(loopTimer);
+      loopTimer = null;
+    }
     if (rafId) cancelAnimationFrame(rafId);
     startTime = null;
     replayBtn.classList.remove('show');
